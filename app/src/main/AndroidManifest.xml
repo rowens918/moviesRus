@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.android.moviesrus">
+    package="com.example.android.moviesrus2">
 
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
@@ -21,6 +21,10 @@
         </activity>
         <activity android:name=".DetailActivity"
             android:parentActivityName=".MainActivity" />
-    </application>
 
+        <provider
+            android:authorities="com.example.android.moviesrus2"
+            android:name=".MovieContentProvider"
+            android:exported="false" />
+    </application>
 </manifest>

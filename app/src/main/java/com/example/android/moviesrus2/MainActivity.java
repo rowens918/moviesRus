@@ -1,23 +1,23 @@
-package com.example.android.moviesrus;
+package com.example.android.moviesrus2;
 
-import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
+import android.database.SQLException;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements MovieAdapter.MovieAdapterOnClickHandler {
@@ -48,8 +48,12 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
     }
 
     private void loadMovieData() {
-        showMovieDataView();
-        new FetchMovieDataTask().execute();
+        if (sortingMethod.equals("favorites")) {
+            new FetchFavorites().execute();
+        } else {
+            showMovieDataView();
+            new FetchMovieDataTask().execute();
+        }
     }
 
     @Override
@@ -60,6 +64,8 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
         intent.putExtra("synopsis", movieClicked.movieSynopsis);
         intent.putExtra("rating", movieClicked.movieRating);
         intent.putExtra("releaseDate", movieClicked.movieReleaseDate);
+        intent.putExtra("id", movieClicked.movieId);
+        intent.putExtra("sort", sortingMethod);
         startActivity(intent);
     }
 
@@ -79,6 +85,64 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
 
         loadMovieData();
         mRecyclerView.swapAdapter(movieAdapter, false);
+    }
+
+    public class FetchFavorites extends AsyncTask<String, Void, List<MovieInfo>> {
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            mLoadingIndicator.setVisibility(View.VISIBLE);
+        }
+
+        @Override
+        protected List<MovieInfo> doInBackground(String... strings) {
+            Cursor favorites = getContentResolver().query(MovieContract.MovieEntry.CONTENT_URI,
+                    null,
+                    null,
+                    null,
+                    MovieContract.MovieEntry._ID);
+            List<MovieInfo> favsList = new ArrayList<>();
+            int position = 0;
+            try {
+                while(favorites.moveToNext()) {
+                    int index;
+                    index = favorites.getColumnIndexOrThrow(MovieContract.MovieEntry.COLUMN_TITLE);
+                    String title = favorites.getString(index);
+                    index = favorites.getColumnIndexOrThrow(MovieContract.MovieEntry.COLUMN_IMAGE_PATH);
+                    String imagePath = favorites.getString(index);
+                    index = favorites.getColumnIndexOrThrow(MovieContract.MovieEntry.COLUMN_SYNOPSIS);
+                    String synopsis = favorites.getString(index);
+                    index = favorites.getColumnIndexOrThrow(MovieContract.MovieEntry.COLUMN_RATING);
+                    String rating = favorites.getString(index);
+                    index = favorites.getColumnIndexOrThrow(MovieContract.MovieEntry.COLUMN_RELEASE_DATE);
+                    String releaseDate = favorites.getString(index);
+                    index = favorites.getColumnIndexOrThrow(MovieContract.MovieEntry.COLUMN_MOVIE_ID);
+                    String movieId = favorites.getString(index);
+
+                    MovieInfo temp = new MovieInfo(title, imagePath, synopsis, rating, releaseDate, movieId);
+
+                    favsList.add(position, temp);
+                    position++;
+                }
+            } catch (SQLException e){
+                e.printStackTrace();
+            } finally {
+                favorites.close();
+            }
+
+            return favsList;
+        }
+
+        @Override
+        protected void onPostExecute(List<MovieInfo> favList) {
+            if (favList != null) {
+                mLoadingIndicator.setVisibility(View.INVISIBLE);
+                movieAdapter.setMovieInfos(favList);
+                mRecyclerView.setAdapter(movieAdapter);
+            } else {
+                showErrorMessage();
+            }
+        }
     }
 
     public class FetchMovieDataTask extends AsyncTask<String, Void, String>{
@@ -128,12 +192,16 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
         if(id == R.id.action_settings) {
             switch(sorted) {
                 case "popular":
-                    sortingMethod = "top_rated";
-                    setTitle("Movies'R'Us: Top Rated");
+                    sortingMethod = "favorites";
+                    setTitle("Movies'R'Us: Favorites");
                     break;
                 case "top_rated":
                     sortingMethod = "popular";
                     setTitle("Movies'R'Us: Most Popular");
+                    break;
+                case "favorites":
+                    sortingMethod = "top_rated";
+                    setTitle("Movies'R'Us: Top Rated");
                     break;
             }
         }
