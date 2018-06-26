@@ -43,7 +43,9 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
         mRecyclerView.setHasFixedSize(true);
 
         mLoadingIndicator = findViewById(R.id.pb_loading_indicator);
-        movieAdapter = new MovieAdapter(this);
+        if (movieAdapter == null) {
+            movieAdapter = new MovieAdapter(this);
+        }
         loadMovieData();
     }
 
@@ -85,6 +87,36 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
 
         loadMovieData();
         mRecyclerView.swapAdapter(movieAdapter, false);
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle savedInstanceState) {
+        super.onSaveInstanceState(savedInstanceState);
+        savedInstanceState.putString("sort", sortingMethod);
+    }
+
+    @Override
+    public void onRestoreInstanceState(Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        sortingMethod = savedInstanceState.getString("sort");
+        switch (sortingMethod) {
+            case ("favorites"):
+                setTitle("Movies'R'Us: Favorites");
+                break;
+            case ("top_rated"):
+                setTitle("Movies'R'Us: Top Rated");
+                break;
+            case ("popular"):
+                setTitle("Movies'R'Us: Popular");
+                break;
+            default:
+                break;
+        }
+    }
+
+    protected void onResume() {
+        super.onResume();
+        reloadData();
     }
 
     public class FetchFavorites extends AsyncTask<String, Void, List<MovieInfo>> {
